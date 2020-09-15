@@ -58,17 +58,17 @@ def get_image(img_path):
     return img
 
 def extract_delf(image_dataset, store_file="fvecs_delf", extract_size=300):
-    # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if gpus:
-    #     try:
-    #         # Currently, memory growth needs to be the same across GPUs
-    #         for gpu in gpus:
-    #             tf.config.experimental.set_memory_growth(gpu, True)
-    #         logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-    #         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    #     except RuntimeError as e:
-    #         # Memory growth must be set before GPUs have been initialized
-    #         print(e)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
 
 
     print(f"[INFO] image_dataset_folder: {image_dataset}, extract_feature_size: {extract_size}")
@@ -88,6 +88,8 @@ def extract_delf(image_dataset, store_file="fvecs_delf", extract_size=300):
                           score_threshold=tf.constant(100.0),
                           image_scales=tf.constant([0.25, 0.3536, 0.5, 0.7071, 1.0, 1.4142, 2.0]),
                           max_feature_num=tf.constant(1000))
+
+            print(descrip.keys())
 
             descrip = result['descriptors']
             descrip = np.array(descrip)
@@ -113,4 +115,17 @@ def extract_delf(image_dataset, store_file="fvecs_delf", extract_size=300):
         f.write('\n'.join(fnames))
 
 if __name__ == '__main__':
-    extract_res('../image/**/*.jpg')
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", required=True,
+                        help='Dataset path format, ex) ./image/**/*.jpg')
+    parser.add_argument("--type", required=False,
+                        default="res",
+                        help='Extract type ( "res" or "delf" )')
+    args = parser.parse_args()
+
+    if args.type == "res":
+        extract_res(args.dataset)
+    elif args.type == "delf":
+        extract_delf(args.dataset)
