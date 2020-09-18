@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use("Agg")
 
 # import the necessary packages
@@ -37,6 +38,7 @@ def visualize_predictions(decoded, gt, samples=10):
         # return the output images
         return outputs
 
+
 def preprocess(img_path, input_shape=None):
     img = tf.io.read_file(img_path)
     img = tf.image.decode_jpeg(img, channels=input_shape[2])
@@ -44,6 +46,7 @@ def preprocess(img_path, input_shape=None):
         img = tf.image.resize(img, input_shape[:2])
     img = img / 255.0
     return img
+
 
 # construct the argument parse and parse the arguments
 
@@ -71,19 +74,37 @@ list_ds = tf.data.Dataset.from_tensor_slices(fnames)
 ds = list_ds.map(lambda x: preprocess(x, input_shape), num_parallel_calls=-1)
 dataset = ds.batch(BS).prefetch(-1)
 
-
 # construct our convolutional autoencoder
 print("[INFO] building autoencoder...")
-autoencoder = ConvAutoencoder.build(28, 28, 1)
-opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
-autoencoder.compile(loss="mse", optimizer=opt)
+AE = Autoencoder(
+    input_dim=(28, 28, 1)
+    , encoder_conv_filters=[32, 64, 64, 64]
+    , encoder_conv_kernel_size=[3, 3, 3, 3]
+    , encoder_conv_strides=[1, 2, 2, 1]
+    , decoder_conv_t_filters=[64, 64, 32, 1]
+    , decoder_conv_t_kernel_size=[3, 3, 3, 3]
+    , decoder_conv_t_strides=[1, 2, 2, 1]
+    , z_dim=2
+)
+
+AE.compile(INIT_LR)
+
+# AE.train(
+#     x_train[:1000]
+#     , batch_size = BATCH_SIZE
+#     , epochs = 200
+#     , run_folder = RUN_FOLDER
+#     , initial_epoch = INITIAL_EPOCH
+# )
 
 # train the convolutional autoencoder
-H = autoencoder.fit(dataset, dataset,
-                    validation_data=(testX, testX),
-                    epochs=EPOCHS,
-                    batch_size=BS)
-
+H = AE.train(
+    x_train[:1000],
+    batch_size=BATCH_SIZE,
+    epochs=200,
+    run_folder=RUN_FOLDER,
+    initial_epoch=INITIAL_EPOCH
+)
 # use the convolutional autoencoder to make predictions on the
 # testing images, construct the visualization, and then save it
 # to disk
@@ -106,4 +127,4 @@ plt.savefig(PLOT)
 
 # serialize the autoencoder model to disk
 print("[INFO] saving autoencoder...")
-autoencoder.save(MODEL, save_format="h5")
+#autoencoder.save(MODEL, save_format="h5")

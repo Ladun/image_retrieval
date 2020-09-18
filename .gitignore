@@ -10,6 +10,10 @@
 
 *.bin*
 *.txt
+.idea/*
+
+image/*
+!image/test/*
 
 # User-specific stuff
 .idea/**/workspace.xml
