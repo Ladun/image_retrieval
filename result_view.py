@@ -1,6 +1,6 @@
 import cv2
 from matplotlib import pyplot as plt
-
+import os
 
 def main():
     with open('retrieval_result.txt', 'r') as f:

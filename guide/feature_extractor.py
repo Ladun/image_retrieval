@@ -17,17 +17,19 @@ def preprocess(img_path, input_shape=None):
     img = tf.image.decode_jpeg(img, channels=input_shape[2])
     if input_shape is not None:
         img = tf.image.resize(img, input_shape[:2])
+    #img = tf.keras.applications.mobilenet_v2.preprocess_input(img)
     return img
 
 def extract_res(image_dataset, store_file="fvecs"):
-    binary_file = f"{store_file}.bin"
-    name_file = f"{store_file}_names.txt"
+    extract_folder = f"features"
+    binary_file = f"{extract_folder}/{store_file}.bin"
+    name_file = f"{extract_folder}/{store_file}_names.txt"
 
     batch_size = 100
     input_shape = (224, 224, 3)
     base = tf.keras.applications.ResNet152(input_shape=input_shape,
-                                           include_top=False,
-                                           weights='imagenet')
+                                             include_top=False,
+                                             weights='imagenet')
     base.trainable = False
     model = Model(inputs=base.input, outputs=layers.GlobalAveragePooling2D()(base.output))
 
@@ -37,7 +39,7 @@ def extract_res(image_dataset, store_file="fvecs"):
     dataset = ds.batch(batch_size).prefetch(-1)
 
     with open(binary_file, 'wb') as f:
-        for batch in dataset:
+        for i, batch in enumerate(dataset):
             fvecs = model.predict(batch)
 
             # fvecs의 길이 만큼 fmt설정
@@ -46,6 +48,8 @@ def extract_res(image_dataset, store_file="fvecs"):
             # fmt = 포맷, fvecs.flatten() = 벡터를 한줄로 변환
             # struct.pack을 사용하여 패킹한다.
             f.write(struct.pack(fmt, *(fvecs.flatten())))
+
+            print(f"[INFO] Process {i * batch_size}/{len(fnames)} images.....")
 
     with open(name_file, 'w') as f:
         f.write('\n'.join(fnames))
@@ -73,8 +77,9 @@ def extract_delf(image_dataset, store_file="fvecs_delf", extract_size=300):
 
     print(f"[INFO] image_dataset_folder: {image_dataset}, extract_feature_size: {extract_size}")
 
-    binary_file = f"{store_file}.bin"
-    name_file = f"{store_file}_names.txt"
+    extract_folder = f"features"
+    binary_file = f"{extract_folder}/{store_file}.bin"
+    name_file = f"{extract_folder}/{store_file}_names.txt"
     print(f"[INFO] binary file: {binary_file}, name_file: {name_file}")
 
     fnames = glob.glob(image_dataset, recursive=True)
@@ -120,12 +125,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True,
                         help='Dataset path format, ex) ./image/**/*.jpg')
+    parser.add_argument("--store", required=False,
+                        default="fvecs",
+                        help='Features, Image Path store File')
     parser.add_argument("--type", required=False,
                         default="res",
                         help='Extract type ( "res" or "delf" )')
     args = parser.parse_args()
 
     if args.type == "res":
-        extract_res(args.dataset)
+        extract_res(args.dataset, store_file=args.store)
     elif args.type == "delf":
-        extract_delf(args.dataset)
+        extract_delf(args.dataset, store_file=args.store)

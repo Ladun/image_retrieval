@@ -10,9 +10,12 @@ from guide.feature_extractor import preprocess
 from guide.image_retrieval import ImageRetrieval
 
 
-def retrieval_res(image_path, features, name):
+def retrieval_res(image_path, store_file):
+
+    binary_file = f"{store_file}.bin"
+    name_file = f"{store_file}_names.txt"
     # query Image feature 뽑는 과정
-    # 현재는 간단하게 MobileNetV2로 이미지의 feature를 뽑아내서 비교
+    # 현재는 간단하게 Resnet152로 이미지의 feature를 뽑아내서 비교
     dim = 2048
     input_shape = (224, 224, 3)
     base = tf.keras.applications.ResNet152(input_shape=input_shape,
@@ -29,8 +32,8 @@ def retrieval_res(image_path, features, name):
 
     # 이미지 검색 클래스 생성
     # fvecs.bin랑 fnames.txt는 feature_extractor.py에서 만들 수 있는 파일
-    imageRetrieval = ImageRetrieval(fvec_file=features,
-                                    fvec_img_file_name=name,
+    imageRetrieval = ImageRetrieval(fvec_file=binary_file,
+                                    fvec_img_file_name=name_file,
                                     fvec_dim=dim)
 
     results = imageRetrieval.search(fvec)
@@ -41,13 +44,17 @@ def retrieval_res(image_path, features, name):
             f.writelines(f"{path}\n")
 
 
-def retrieval_delf(image_path, features, name):
+def retrieval_delf(image_path, store_file):
     def get_image(img_path):
         img = tf.io.read_file(img_path)
         img = tf.image.decode_jpeg(img, channels=3)
         img = tf.image.convert_image_dtype(img, tf.float32)
         return img
 
+    binary_file = f"{store_file}.bin"
+    name_file = f"{store_file}_names.txt"
+
+    extract_size = 300
     dim = 40 * 300
 
     delf = hub.load('https://tfhub.dev/google/delf/1').signatures['default']
@@ -61,14 +68,14 @@ def retrieval_delf(image_path, features, name):
 
     descrip = delf_rt['descriptors']
     descrip = np.array(descrip)
-    if descrip.shape[0] < 300:
+    if descrip.shape[0] < extract_size:
         print(f"[INFO] {image_path} feature size: {descrip.shape}")
         return
-    descrip = descrip[:300]
+    descrip = descrip[:extract_size]
     descrip = descrip.flatten().reshape(1, -1)
 
-    imageRetrieval = ImageRetrieval(fvec_file=features,
-                                    fvec_img_file_name=name,
+    imageRetrieval = ImageRetrieval(fvec_file=binary_file,
+                                    fvec_img_file_name=name_file,
                                     fvec_dim=dim)
 
     results = imageRetrieval.search(descrip)
@@ -84,18 +91,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", required=True,
                         help="Query Image")
-    parser.add_argument("--features", required=False,
-                        default="res",
+    parser.add_argument("--store", required=False,
+                        default="fvecs",
                         help='Features Binary File')
-    parser.add_argument("--names", required=False,
-                        default="res",
-                        help='feature image name')
     parser.add_argument("--type", required=False,
                         default="res",
                         help='Extract type ( "res" or "delf" )')
     args = parser.parse_args()
 
     if args.type == "res":
-        retrieval_res(args.image, args.features, args.names)
+        retrieval_res(args.image, args.store)
     elif args.type == "delf":
-        retrieval_delf(args.image, args.features, args.names)
+        retrieval_delf(args.image, args.store)
