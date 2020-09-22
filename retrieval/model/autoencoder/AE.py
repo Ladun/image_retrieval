@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Conv2DTranspose, Reshape, Lambda, Activation, \
+from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Conv2DTranspose, Reshape, GlobalAveragePooling2D, Activation, \
     BatchNormalization, LeakyReLU, Dropout
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
@@ -75,7 +75,7 @@ class Autoencoder():
 
         shape_before_flattening = K.int_shape(x)[1:]
 
-        x = Flatten()(x)
+        x = GlobalAveragePooling2D()(x)
         encoder_output = Dense(self.z_dim, name='encoder_output')(x)
 
         self.encoder = Model(encoder_input, encoder_output)
@@ -118,10 +118,14 @@ class Autoencoder():
 
         self.model = Model(model_input, model_output)
 
-    def compile(self, learning_rate):
+    def compile(self, learning_rate, batch_size):
         self.learning_rate = learning_rate
 
-        optimizer = Adam(lr=learning_rate)
+        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=self.learning_rate,
+                                                                  decay_steps=batch_size * 10,
+                                                                  decay_rate=0.96)
+
+        optimizer = Adam(learning_rate=lr_sched)
 
         def r_loss(y_true, y_pred):
             return K.mean(K.square(y_true - y_pred), axis=[1, 2, 3])
@@ -153,24 +157,17 @@ class Autoencoder():
         self.plot_model(folder)
 
     def load_weights(self, filepath):
+        print(f"[INFO] Load weights {filepath} ...")
         self.model.load_weights(filepath)
 
-    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=100, initial_epoch=0, lr_decay=1):
-
-        # custom_callback = CustomCallback(run_folder, print_every_n_batches, initial_epoch, self)
-        # lr_sched = step_decay_schedule(initial_lr=self.learning_rate, decay_factor=lr_decay, step_size=1)
-        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=self.learning_rate,
-                                                                  decay_steps=batch_size * 10,
-                                                                  decay_rate=0.96)
-
+    def train(self, train_dataset, epochs, run_folder, initial_epoch=0):
+        print(f"[INFO] train, run_folder: {run_folder}")
         checkpoint2 = ModelCheckpoint(os.path.join(run_folder, 'weights/weights.h5'), save_weights_only=True, verbose=1)
 
-        callbacks_list = [checkpoint2, lr_sched]
+        callbacks_list = [checkpoint2]
 
         hist = self.model.fit(
-            x_train,
-            x_train,
-            batch_size=batch_size,
+            train_dataset,
             shuffle=True,
             epochs=epochs,
             initial_epoch=initial_epoch,
