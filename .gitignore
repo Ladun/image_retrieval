@@ -11,6 +11,8 @@
 *.bin*
 *.txt
 .idea/*
+retrieval/model/autoencoder/*
+test.py
 
 image/*
 !image/test/*
