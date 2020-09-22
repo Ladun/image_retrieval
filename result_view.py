@@ -7,7 +7,7 @@ def main():
         fnames = f.readlines()
 
     for fname in fnames:
-        path = fname[3:-1]
+        path = fname[:-1]
         print(f"[INFO] {path} read...")
         img = cv2.imread(path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
