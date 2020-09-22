@@ -10,6 +10,12 @@
 
 *.bin*
 *.txt
+.idea/*
+retrieval/model/autoencoder/*
+test.py
+
+image/*
+!image/test/*
 
 # User-specific stuff
 .idea/**/workspace.xml
