@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 # import the necessary packages
-from guide.model.autoencoder.AE import Autoencoder
+from retrieval.model.autoencoder.AE import Autoencoder
 
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
