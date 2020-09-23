@@ -24,11 +24,12 @@ def retrieval_res(image_path, binary_file, name_file):
     st = time.time()
     # 이미지 로드
     img = preprocess(image_path, input_shape)
+    img = tf.reshape(img, (1,) + input_shape)
     print(f"[INFO] image load time {time.time() - st}")
 
     st = time.time()
     # 이미지에서 feature 뽑아내기
-    fvec = model.predict(np.array([img]))
+    fvec = model.predict(img)
     print(f"[INFO] feature extract time {time.time() - st}")
 
     st = time.time()
@@ -54,6 +55,8 @@ if __name__ == "__main__":
     parser.add_argument("--image", required=True,
                         help="Query Image")
     parser.add_argument("--features", required=True,
+                        help='Features Binary File, .bin')
+    parser.add_argument("--names", required=True,
                         help='Features Binary File, .bin')
     args = parser.parse_args()
 

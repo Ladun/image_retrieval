@@ -8,9 +8,11 @@
 
 **/__pycache__/*
 
+
+*tfr
 *.bin*
 *.txt
-retrieval/model/autoencoder/output
+retrieval/model/
 .idea/*
 
 test.py
